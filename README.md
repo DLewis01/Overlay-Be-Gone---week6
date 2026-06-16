@@ -14,10 +14,13 @@ To run this, you'll need to install Tamper Monkey to give you control over your 
 
 Installation:
       
-Chrome / Edge / Brave: Visit the Chrome Web Store → search “Tampermonkey” → click “Add to Chrome/Edge.”
+-Chrome / Edge / Brave: Visit the Chrome Web Store → search “Tampermonkey” → click “Add to Chrome/Edge.”
 
-Firefox: Go to Firefox Add-ons → search “Tampermonkey” → click “Add to Firefox.”
+-Firefox: Go to Firefox Add-ons → search “Tampermonkey” → click “Add to Firefox.”
 
-Safari (Paid): Tampermonkey is available for Safari 14+ from the Mac App Store (paid version required).
-Safari (Free Version): Visit tampermonkey.net → click the Safari download button → you'll see three versions; choose the one matching your macOS (Tampermonkey for macOS 11+, Tampermonkey Classic for macOS 10.13+, or Legacy for older systems) → click "Download" and install the free extension directly
+-Safari (Paid): Tampermonkey is available for Safari 14+ from the Mac App Store (paid version required).
+
+-Safari (Free Version): Visit tampermonkey.net → click the Safari download button → you'll see three versions; choose the one matching your macOS (Tampermonkey for macOS 11+, Tampermonkey Classic for macOS 10.13+, or Legacy for older systems) → click "Download" and install the free extension directly
+
+
 Once installed, just click the Tampermonkey icon → “Create a new script” and paste this code into the window, press save, and that it!
