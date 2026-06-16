@@ -1,4 +1,5 @@
-Another TamperMonkey script this week. One click to close any overlay on any website.Close any overlay on any website with a single click.
+Another TamperMonkey script this week. One click to close any overlay on any website. Close any overlay on any website with a single click.
+
 I hate nag screens that tell me to log in or that I need to disable my adblocker to view the site. It's my browser, and you should force me to act in a certain way   
 
 Features:
