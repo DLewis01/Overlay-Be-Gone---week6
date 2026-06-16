@@ -1,0 +1,297 @@
+// ==UserScript==
+// @name         Overlay Be Gone (OBG)
+// @namespace    http://tampermonkey.net/
+// @version      1.1
+// @description  Adds a button to remove popup overlays - button stays on top
+// @author       Darryl Lewis
+// @match        *://*/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Create the button with maximum z-index
+    const removePopupButton = document.createElement('button');
+    removePopupButton.innerHTML = 'OBG';
+    removePopupButton.title = 'Popup Overlay Be Gone (Alt+R)';
+    
+    // Style the button with extremely high z-index
+    Object.assign(removePopupButton.style, {
+        position: 'fixed',
+        top: '10px',
+        left: '10px',
+        zIndex: '2147483647', // Maximum possible z-index value
+        padding: '8px 12px',
+        backgroundColor: '#ff4444',
+        color: 'white',
+        border: '2px solid white',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.5)',
+        transition: 'all 0.3s ease',
+        pointerEvents: 'auto', // Ensure it's clickable
+        opacity: '0.9'
+    });
+
+    // Hover effect
+    removePopupButton.addEventListener('mouseenter', () => {
+        removePopupButton.style.backgroundColor = '#ff6666';
+        removePopupButton.style.transform = 'scale(1.1)';
+        removePopupButton.style.opacity = '1';
+    });
+    
+    removePopupButton.addEventListener('mouseleave', () => {
+        removePopupButton.style.backgroundColor = '#ff4444';
+        removePopupButton.style.transform = 'scale(1)';
+        removePopupButton.style.opacity = '0.9';
+    });
+
+    // Add click functionality
+    removePopupButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        removePopups();
+    });
+
+    // Function to remove popup overlays
+    function removePopups() {
+        let removedCount = 0;
+
+        // 1. Aggressive approach: Remove elements that might cover our button
+        function isCoveringButton(element) {
+            if (!element || element === removePopupButton) return false;
+            
+            const buttonRect = removePopupButton.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            
+            // Check if element covers the button area
+            return !(elementRect.right < buttonRect.left || 
+                    elementRect.left > buttonRect.right || 
+                    elementRect.bottom < buttonRect.top || 
+                    elementRect.top > buttonRect.bottom);
+        }
+
+        // 2. Find and remove elements covering our button
+        const allElements = document.querySelectorAll('body *:not(script):not(style)');
+        allElements.forEach(element => {
+            try {
+                const style = window.getComputedStyle(element);
+                
+                // Check if element is visible and potentially covering button
+                if (style.display !== 'none' && 
+                    style.visibility !== 'hidden' && 
+                    style.opacity !== '0' &&
+                    element.offsetParent !== null) {
+                    
+                    // Check z-index and position
+                    const zIndex = parseInt(style.zIndex) || 0;
+                    const isFixed = style.position === 'fixed' || style.position === 'absolute';
+                    
+                    // If element has high z-index and might cover button
+                    if (isFixed && zIndex > 1000) {
+                        if (isCoveringButton(element)) {
+                            element.remove();
+                            removedCount++;
+                        }
+                    }
+                    
+                    // Check if it's a typical popup
+                    const isLikelyPopup = /modal|popup|overlay|lightbox|dialog|cookie|newsletter|subscribe/i.test(
+                        element.className + ' ' + (element.id || '')
+                    );
+                    
+                    if (isLikelyPopup && (isFixed || zIndex > 100)) {
+                        element.remove();
+                        removedCount++;
+                    }
+                }
+            } catch (e) {
+                // Skip elements that cause errors
+            }
+        });
+
+        // 3. Remove common popup containers (more aggressive)
+        const selectors = [
+            // Modal and popup containers
+            'div[class*="modal"]',
+            'div[class*="popup"]',
+            'div[class*="overlay"]',
+            'div[class*="lightbox"]',
+            'div[class*="dialog"]',
+            
+            // Common overlay elements
+            '.modal-backdrop',
+            '.modal-overlay',
+            '.popup-overlay',
+            '.fancybox-overlay',
+            '.remodal-overlay',
+            '.mfp-bg',
+            
+            // Cookie notices and banners
+            'div[class*="cookie"]',
+            'div[class*="Cookie"]',
+            'div[class*="notice"]',
+            'div[class*="banner"]',
+            
+            // Newsletter popups
+            'div[class*="newsletter"]',
+            'div[class*="subscribe"]',
+            
+            // Elements with high z-index
+            '[style*="z-index: 999"]',
+            '[style*="z-index:999"]',
+            '[style*="z-index: 1000"]',
+            '[style*="z-index:1000"]',
+            '[style*="z-index: 9999"]',
+            '[style*="z-index:9999"]'
+        ];
+
+        selectors.forEach(selector => {
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    if (element && element !== removePopupButton) {
+                        element.remove();
+                        removedCount++;
+                    }
+                });
+            } catch (e) {
+                // Ignore invalid selectors
+            }
+        });
+
+        // 4. Remove fixed position elements that might be overlays
+        const fixedElements = document.querySelectorAll('body > div, body > section');
+        fixedElements.forEach(element => {
+            if (element === removePopupButton) return;
+            
+            try {
+                const style = window.getComputedStyle(element);
+                if (style.position === 'fixed' || style.position === 'absolute') {
+                    // Check if it's likely an overlay (large element)
+                    const rect = element.getBoundingClientRect();
+                    if (rect.width > window.innerWidth * 0.5 || 
+                        rect.height > window.innerHeight * 0.5) {
+                        element.remove();
+                        removedCount++;
+                    }
+                }
+            } catch (e) {
+                // Skip problematic elements
+            }
+        });
+
+        // 5. Remove body overflow restrictions
+        document.body.style.overflow = '';
+        document.body.style.overflowY = '';
+        document.body.style.overflowX = '';
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.overflowY = '';
+        document.documentElement.style.overflowX = '';
+        
+        // Remove any body classes that might lock scrolling
+        document.body.className = document.body.className
+            .replace(/modal-open/g, '')
+            .replace(/overflow-hidden/g, '')
+            .replace(/no-scroll/g, '')
+            .replace(/popup-open/g, '');
+
+        // Reinsert button if it was accidentally removed
+        if (!document.body.contains(removePopupButton)) {
+            document.body.appendChild(removePopupButton);
+        }
+
+        // Show feedback
+        showFeedback(removedCount);
+    }
+
+    // Function to show feedback
+    function showFeedback(count) {
+        const feedback = document.createElement('div');
+        feedback.textContent = count > 0 ? `✅ Removed ${count} popup(s)` : '🔍 No popups found';
+        Object.assign(feedback.style, {
+            position: 'fixed',
+            top: '50px',
+            left: '10px',
+            zIndex: '2147483647',
+            padding: '10px 20px',
+            backgroundColor: count > 0 ? '#4CAF50' : '#ff9800',
+            color: 'white',
+            borderRadius: '5px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+            border: '2px solid white',
+            pointerEvents: 'none',
+            animation: 'fadeOut 2s forwards'
+        });
+
+        // Add animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                0% { opacity: 1; }
+                70% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(feedback);
+        setTimeout(() => feedback.remove(), 2000);
+    }
+
+    // Add keyboard shortcut (Alt+R)
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey && e.key === 'r') {
+            e.preventDefault();
+            removePopups();
+        }
+    });
+
+    // Ensure button is always on top
+    function ensureButtonOnTop() {
+        if (!document.body.contains(removePopupButton)) {
+            document.body.appendChild(removePopupButton);
+        }
+        
+        // Reapply styles to ensure it stays on top
+        removePopupButton.style.zIndex = '2147483647';
+        
+        // Check if any element has higher z-index and reposition button if needed
+        const allElements = document.querySelectorAll('body *');
+        allElements.forEach(element => {
+            if (element !== removePopupButton) {
+                try {
+                    const style = window.getComputedStyle(element);
+                    const zIndex = parseInt(style.zIndex) || 0;
+                    if (zIndex > 2147483646) {
+                        element.style.zIndex = '2147483646';
+                    }
+                } catch (e) {}
+            }
+        });
+    }
+
+    // Check button position periodically
+    setInterval(ensureButtonOnTop, 1000);
+
+    // Add the button to the page when ready
+    if (document.body) {
+        document.body.appendChild(removePopupButton);
+    } else {
+        window.addEventListener('DOMContentLoaded', () => {
+            document.body.appendChild(removePopupButton);
+        });
+    }
+
+    // Also add it when page loads
+    window.addEventListener('load', () => {
+        if (!document.body.contains(removePopupButton)) {
+            document.body.appendChild(removePopupButton);
+        }
+    });
+})();
